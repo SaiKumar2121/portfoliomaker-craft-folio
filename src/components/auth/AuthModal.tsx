@@ -11,6 +11,8 @@ import { Loader2 } from "lucide-react";
 export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -18,14 +20,13 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
+  
     try {
       if (isLogin) {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        
         if (error) throw error;
         if (data?.user) {
           toast({ title: "Welcome back!", description: "You have been successfully logged in." });
@@ -35,17 +36,23 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              name,
+            },
+          },
         });
-        
+  
         if (error) throw error;
+  
         if (data?.user) {
           if (data.user.identities?.length === 0) {
             throw new Error("Email already in use. Please sign in instead.");
           }
-          
-          toast({ 
+  
+          toast({
             title: "Account created!",
-            description: "Please check your email to confirm your account." 
+            description: "Please check your email to confirm your account.",
           });
           onClose();
         }
@@ -60,7 +67,7 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
       setLoading(false);
     }
   };
-
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
@@ -75,6 +82,19 @@ export function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
+          {!isLogin && (
+          <>
+          <Label htmlFor="email">Name</Label>
+          <Input
+              id="name"
+              type="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your name"
+              required
+            />
+          </>  
+          )}
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
