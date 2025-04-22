@@ -3,41 +3,27 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { AuthModal } from "@/components/auth/AuthModal";
-import { supabase, isSupabaseConfigured, isUsingFallbackValues } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@supabase/supabase-js";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, User as UserIcon } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export function Header() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const supabaseConfigured = isSupabaseConfigured();
-  const usingFallbackValues = isUsingFallbackValues();
 
   useEffect(() => {
-    // If using fallbacks, skip auth checks and simulate logged in state
-    if (usingFallbackValues) {
-      setIsLoading(false);
-      // Create a dummy user when using fallbacks
-      setUser({ 
-        id: 'demo-user',
-        email: 'demo@example.com',
-        app_metadata: {},
-        user_metadata: {},
-        aud: '',
-        created_at: ''
-      } as User);
-      return;
-    }
-    
-    // Skip Supabase operations if not configured
-    if (!supabaseConfigured) {
-      setIsLoading(false);
-      return;
-    }
-    
     // Get initial session
     const getInitialSession = async () => {
       try {
@@ -60,29 +46,12 @@ export function Header() {
       }
     );
 
-    // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabaseConfigured, usingFallbackValues]);
+  }, []);
 
   const handleSignOut = async () => {
-    if (usingFallbackValues) {
-      // For demo mode, just reset the user state
-      setUser(null);
-      toast({ title: "Signed out from demo mode" });
-      return;
-    }
-    
-    if (!supabaseConfigured) {
-      toast({
-        title: "Configuration error",
-        description: "Supabase is not properly configured. Authentication is disabled.",
-        variant: "destructive" 
-      });
-      return;
-    }
-    
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
@@ -94,18 +63,6 @@ export function Header() {
         variant: "destructive" 
       });
     }
-  };
-
-  const handleAuthClick = () => {
-    if (usingFallbackValues) {
-      toast({
-        title: "Demo Mode Active",
-        description: "Using demo credentials. Set Supabase environment variables for real authentication.",
-        variant: "default"
-      });
-    }
-    
-    setShowAuthModal(true);
   };
 
   return (
@@ -136,12 +93,34 @@ export function Header() {
               <Button asChild variant="outline">
                 <Link to="/new">Create Portfolio</Link>
               </Button>
-              <Button variant="ghost" onClick={handleSignOut}>
-                Sign Out
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>
+                        {user.email?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user.email}</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           ) : (
-            <Button onClick={handleAuthClick}>
+            <Button onClick={() => setShowAuthModal(true)}>
               Sign In
             </Button>
           )}
