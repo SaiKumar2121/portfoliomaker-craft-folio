@@ -3,18 +3,25 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { AuthModal } from "@/components/auth/AuthModal";
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@supabase/supabase-js";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 
 export function Header() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const supabaseConfigured = isSupabaseConfigured();
 
   useEffect(() => {
+    // Skip Supabase operations if not configured
+    if (!supabaseConfigured) {
+      setIsLoading(false);
+      return;
+    }
+    
     // Get initial session
     const getInitialSession = async () => {
       try {
@@ -41,9 +48,18 @@ export function Header() {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [supabaseConfigured]);
 
   const handleSignOut = async () => {
+    if (!supabaseConfigured) {
+      toast({
+        title: "Configuration error",
+        description: "Supabase is not properly configured. Authentication is disabled.",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
@@ -55,6 +71,19 @@ export function Header() {
         variant: "destructive" 
       });
     }
+  };
+
+  const handleAuthClick = () => {
+    if (!supabaseConfigured) {
+      toast({
+        title: "Configuration error",
+        description: "Supabase is not properly configured. Please set up environment variables.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setShowAuthModal(true);
   };
 
   return (
@@ -90,7 +119,7 @@ export function Header() {
               </Button>
             </>
           ) : (
-            <Button onClick={() => setShowAuthModal(true)}>
+            <Button onClick={handleAuthClick}>
               Sign In
             </Button>
           )}
