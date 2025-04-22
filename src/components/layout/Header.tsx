@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { AuthModal } from "@/components/auth/AuthModal";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured, isUsingFallbackValues } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@supabase/supabase-js";
 import { Loader2, AlertTriangle } from "lucide-react";
@@ -14,8 +14,24 @@ export function Header() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const supabaseConfigured = isSupabaseConfigured();
+  const usingFallbackValues = isUsingFallbackValues();
 
   useEffect(() => {
+    // If using fallbacks, skip auth checks and simulate logged in state
+    if (usingFallbackValues) {
+      setIsLoading(false);
+      // Create a dummy user when using fallbacks
+      setUser({ 
+        id: 'demo-user',
+        email: 'demo@example.com',
+        app_metadata: {},
+        user_metadata: {},
+        aud: '',
+        created_at: ''
+      } as User);
+      return;
+    }
+    
     // Skip Supabase operations if not configured
     if (!supabaseConfigured) {
       setIsLoading(false);
@@ -48,9 +64,16 @@ export function Header() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabaseConfigured]);
+  }, [supabaseConfigured, usingFallbackValues]);
 
   const handleSignOut = async () => {
+    if (usingFallbackValues) {
+      // For demo mode, just reset the user state
+      setUser(null);
+      toast({ title: "Signed out from demo mode" });
+      return;
+    }
+    
     if (!supabaseConfigured) {
       toast({
         title: "Configuration error",
@@ -74,13 +97,12 @@ export function Header() {
   };
 
   const handleAuthClick = () => {
-    if (!supabaseConfigured) {
+    if (usingFallbackValues) {
       toast({
-        title: "Configuration error",
-        description: "Supabase is not properly configured. Please set up environment variables.",
-        variant: "destructive"
+        title: "Demo Mode Active",
+        description: "Using demo credentials. Set Supabase environment variables for real authentication.",
+        variant: "default"
       });
-      return;
     }
     
     setShowAuthModal(true);
