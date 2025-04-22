@@ -2,15 +2,17 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { TemplateInfo } from "@/types/portfolio";
-import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Check } from "lucide-react";
 
 interface TemplateCardProps {
   template: TemplateInfo;
+  user: any; 
+  onLoginRequired: () => void; 
 }
 
-export function TemplateCard({ template }: TemplateCardProps) {
+export function TemplateCard({ template, user, onLoginRequired }: TemplateCardProps) {
+
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md">
       <div className="aspect-video w-full overflow-hidden bg-muted">
@@ -38,9 +40,16 @@ export function TemplateCard({ template }: TemplateCardProps) {
         </div>
       </CardContent>
       <CardFooter>
-        <Button asChild className="w-full">
-          <Link to={`/new?template=${template.id}`}>Use Template</Link>
-        </Button>
+      <Button className="w-full" onClick={() => {
+        if (user) {
+          window.location.href = `/new?template=${template.id}`;
+        } else {
+          onLoginRequired();
+        }
+      }}>
+        Use Template
+     </Button>
+
       </CardFooter>
     </Card>
   );
