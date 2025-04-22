@@ -1,32 +1,60 @@
 
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { supabase } from "@/lib/supabase";
-import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { User } from "@supabase/supabase-js";
+import { Loader2 } from "lucide-react";
 
 export function Header() {
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
+    // Get initial session
+    const getInitialSession = async () => {
+      try {
+        setIsLoading(true);
+        const { data } = await supabase.auth.getSession();
+        setUser(data.session?.user || null);
+      } catch (error) {
+        console.error('Error getting session:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+    getInitialSession();
 
-    return () => subscription.unsubscribe();
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user || null);
+      }
+    );
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast({ title: "Signed out successfully" });
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      toast({ title: "Signed out successfully" });
+    } catch (error: any) {
+      toast({ 
+        title: "Sign out failed", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
   };
 
   return (
@@ -44,7 +72,12 @@ export function Header() {
           <Link to="/templates" className="text-muted-foreground hover:text-foreground">
             Templates
           </Link>
-          {user ? (
+          
+          {isLoading ? (
+            <Button variant="ghost" size="sm" disabled>
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </Button>
+          ) : user ? (
             <>
               <Link to="/my-portfolios" className="text-muted-foreground hover:text-foreground">
                 My Portfolios

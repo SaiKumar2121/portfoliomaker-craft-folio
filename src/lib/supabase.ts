@@ -1,11 +1,11 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Retrieve environment variables
+// Retrieve environment variables with fallbacks for development
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Validate required environment variables and provide helpful error messages
+// Show clear error messages for missing configuration
 if (!supabaseUrl) {
   console.error('Missing VITE_SUPABASE_URL environment variable');
 }
@@ -14,9 +14,8 @@ if (!supabaseKey) {
   console.error('Missing VITE_SUPABASE_ANON_KEY environment variable');
 }
 
-// Create Supabase client with provided URL and key, or fallback to empty strings
-// This prevents runtime crashes but will require proper setup for functionality
+// Create and export the Supabase client
 export const supabase = createClient(
-  supabaseUrl || 'https://your-project-url.supabase.co',
-  supabaseKey || 'your-anon-key'
+  supabaseUrl || '',
+  supabaseKey || ''
 );
